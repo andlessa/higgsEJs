@@ -17,7 +17,8 @@ def getJetTracks(jet,allTracks):
         x = track.X
         y = track.Y
         vTrack = np.array([x,y])
-        rprod = np.linalg.norm(vTrack)
+        ## Remove tracks with no hits in the pixel layers:
+        # rprod = np.linalg.norm(vTrack)
         # if rprod > 102.0:
             # continue
         jet_tracks.append(track)
@@ -51,7 +52,7 @@ def getSigmaXYZ(track):
     # (could only find resolutions for Layers 1 and 3)
     # Note: 1405.6569v2 quotes a resolution of 10e-3 mm in the transverse coordinate and 20e-3-40e-3 mm in the longitudinal one
     vTrack = np.array([track.X,track.Y])
-    rprod = np.linalg.norm(vTrack) < 102.0
+    rprod = np.linalg.norm(vTrack)
     if rprod < 44.0:
         return 33.92*1e-3 # Resolution for Barrel Pixel Layer 1 (according to 1710.03842 Fig.7)
     elif rprod < 102.0:
@@ -71,37 +72,36 @@ def getIP2D(tracks,smear=True):
     for track in tracks:
         d0Err = getSigmaD0(track)      
 
-        ## Method 1:
-        # d0 = track.D0
-        # if smear:
-        #     d0 = np.random.normal(loc=track.D0,scale=d0Err)
-        # if d0 == 0.0: # Hack to deal with zero impact parameter
-        #     ipT = 0.0
-        # else:
-        #     ipT = np.log10(abs(d0)/d0Err)
-        # ipList.append(ipT)
-        # continue
-        
-        ## Method 2:
-        x = track.X
-        y = track.Y
-        phi = track.Phi
-        pT = track.PT
-        if smear: # PT has already been smeared
-            x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
-            y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
-            phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
-
-        vTrack = np.array([x,y])
-        pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
-        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT
-        
-        
+        ## Method 1: directly smear d0 by its estimated error
+        d0 = track.D0
+        if smear:
+            d0 = np.random.normal(loc=track.D0,scale=d0Err)
         if d0 == 0.0: # Hack to deal with zero impact parameter
             ipT = 0.0
         else:
             ipT = np.log10(abs(d0)/d0Err)
         ipList.append(ipT)
+        
+        ## Method 2: smear d0 by smearing the the track vertex and phi
+        # x = track.X
+        # y = track.Y
+        # phi = track.Phi
+        # pT = track.PT
+        # if smear: # PT has already been smeared
+        #     x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
+        #     y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
+        #     phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
+
+        # vTrack = np.array([x,y])
+        # pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
+        # d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT
+        
+        
+        # if d0 == 0.0: # Hack to deal with zero impact parameter
+        #     ipT = 0.0
+        # else:
+        #     ipT = np.log10(abs(d0)/d0Err)
+        # ipList.append(ipT)
     
     return np.median(ipList)
 
