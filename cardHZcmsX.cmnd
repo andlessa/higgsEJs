@@ -1,0 +1,41 @@
+        ##############################################################################################
+          
+        ! Settings used in the main program.
+        Main:numberOfEvents = 10000                     ! number of events to generate
+        Beams:eCM = 13000.                              ! CM energy of collision
+
+        ! Settings related to output in init(), next() and stat().
+        Init:showChangedSettings = on                   ! list changed settings
+        Init:showChangedParticleData = off              ! list changed particle data
+        Next:numberCount = 1000                         ! print message every n events
+        Next:numberShowInfo = 0                         ! print event information n times
+        Next:numberShowProcess = 0                      ! print process record n times
+        Next:numberShowEvent = 0                        ! print event record n times
+
+        ! For debugging purposes only
+        #PartonLevel:ISR = on
+        #PartonLevel:FSR = on
+        #PartonLevel:MPI = on
+        #HadronLevel:all = on
+        
+        
+        ! Production settings
+        ! decay the Higgs to two dark quark, turn off all SM branching ratios
+        HiggsSM:ffbar2HZ = on
+        25:m0 =125.0
+        25:onMode = off
+        25:addChannel = 1 1.0 102 4900111 4900111
+        25:onIfAny = 4900111
+        23:onMode = off
+        23:onIfAny = 11 13        
+        
+        4900111:m0 = 55.0                                  ! Setting pi'0  Mass
+        4900111:tau0 = 100.0                              ! proper lifetime, in mm
+        4900111:0:all = 1 1.0 91 5 -5                 ! pi0' -> b bbar
+        
+
+        
+
+
+                                                 
+        

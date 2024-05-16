@@ -35,10 +35,9 @@ def getSigmaD0(track):
     pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
 
     ## Assuming nominal values quoted in 1405.6569v2 (pg.21)
-    # a = 30e-3
-    # b = 100e-3
-    # d0Err = np.sqrt(a**2 + (b/track.PT)**2)
-    # d0Err = 25e-3
+    a = 30e-3
+    b = 100e-3
+    d0Err = np.sqrt(a**2 + (b/track.PT)**2)
     # return d0Err
 
     ## Assuming the d0 error comes from the phi, and x,y resolutions:
@@ -73,35 +72,35 @@ def getIP2D(tracks,smear=True):
         d0Err = getSigmaD0(track)      
 
         ## Method 1: directly smear d0 by its estimated error
-        d0 = track.D0
-        if smear:
-            d0 = np.random.normal(loc=track.D0,scale=d0Err)
-        if d0 == 0.0: # Hack to deal with zero impact parameter
-            ipT = 0.0
-        else:
-            ipT = np.log10(abs(d0)/d0Err)
-        ipList.append(ipT)
-        
-        ## Method 2: smear d0 by smearing the the track vertex and phi
-        # x = track.X
-        # y = track.Y
-        # phi = track.Phi
-        # pT = track.PT
-        # if smear: # PT has already been smeared
-        #     x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
-        #     y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
-        #     phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
-
-        # vTrack = np.array([x,y])
-        # pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
-        # d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT
-        
-        
+        # d0 = track.D0
+        # if smear:
+        #     d0 = np.random.normal(loc=track.D0,scale=d0Err)
         # if d0 == 0.0: # Hack to deal with zero impact parameter
         #     ipT = 0.0
         # else:
         #     ipT = np.log10(abs(d0)/d0Err)
         # ipList.append(ipT)
+        
+        ## Method 2: smear d0 by smearing the the track vertex and phi
+        x = track.X
+        y = track.Y
+        phi = track.Phi
+        pT = track.PT
+        if smear: # PT has already been smeared
+            x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
+            y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
+            phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
+
+        vTrack = np.array([x,y])
+        pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
+        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT
+        
+        
+        if d0 == 0.0: # Hack to deal with zero impact parameter
+            ipT = 0.0
+        else:
+            ipT = np.log10(abs(d0)/d0Err)
+        ipList.append(ipT)
     
     return np.median(ipList)
 
