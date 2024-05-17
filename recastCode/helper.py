@@ -1,6 +1,25 @@
 #!/usr/bin/env python3
 
 import numpy as np
+from scipy.interpolate import CubicSpline
+import os
+
+
+data_Iter5 = np.genfromtxt(os.path.join(os.path.dirname(__file__),'Iter_5.csv'),delimiter=',')
+trackEff_F = CubicSpline(data_Iter5[:,0],data_Iter5[:,1],extrapolate=True)
+
+
+
+def trackEff(track):
+
+    r_cm = np.sqrt(track.X**2 + track.Y**2)/10.0
+    # Extrapolate with a fixed eff
+    if r_cm > 60.0:
+        return 0.15
+    eff = max(0.,trackEff_F(r_cm))
+    eff = min(eff,1.0)
+    return eff
+
 
 def getJetTracks(jet,allTracks):
 
@@ -14,10 +33,13 @@ def getJetTracks(jet,allTracks):
         dR = np.sqrt((jet.Eta-eta)**2 + (jet.Phi-phi)**2)
         if dR > 0.4:
             continue
-        x = track.X
-        y = track.Y
-        vTrack = np.array([x,y])
+        eff = trackEff(track)
+        if np.random.uniform() > eff:
+            continue
         ## Remove tracks with no hits in the pixel layers:
+        # x = track.X
+        # y = track.Y
+        # vTrack = np.array([x,y])
         # rprod = np.linalg.norm(vTrack)
         # if rprod > 102.0:
             # continue
@@ -93,9 +115,7 @@ def getIP2D(tracks,smear=True):
 
         vTrack = np.array([x,y])
         pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
-        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT
-        
-        
+        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT        
         if d0 == 0.0: # Hack to deal with zero impact parameter
             ipT = 0.0
         else:
