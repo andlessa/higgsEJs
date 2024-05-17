@@ -47,7 +47,7 @@ def getJetTracks(jet,allTracks):
 
     return jet_tracks
 
-def getSigmaD0(track):
+def getSigmaD0(track,method='B'):
 
     x = track.X
     y = track.Y
@@ -56,14 +56,14 @@ def getSigmaD0(track):
     vTrack = np.array([x,y])
     pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
 
-    ## Assuming nominal values quoted in 1405.6569v2 (pg.21)
-    a = 30e-3
-    b = 100e-3
-    d0Err = np.sqrt(a**2 + (b/track.PT)**2)
-    # return d0Err
-
-    ## Assuming the d0 error comes from the phi, and x,y resolutions:
-    d0Err = np.sqrt(getSigmaXYZ(track)**2 + ((np.dot(vTrack,pTrack)/pT)**2)*getSigmaPhi(track)**2)
+    ## Method A: Assuming nominal values quoted in 1405.6569v2 (pg.21)
+    if method == 'A':
+        a = 30e-3
+        b = 10e-3
+        d0Err = np.sqrt(a**2 + (b/track.PT)**2)
+    ##  Method B: Assuming the d0 error comes from the phi, and x,y resolutions:
+    elif method == 'B':
+        d0Err = np.sqrt(getSigmaXYZ(track)**2 + ((np.dot(vTrack,pTrack)/pT)**2)*getSigmaPhi(track)**2)
     return d0Err
 
 
