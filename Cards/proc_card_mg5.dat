@@ -40,7 +40,7 @@ define l+ = e+ mu+
 define l- = e- mu-
 define vl = ve vm vt
 define vl~ = ve~ vm~ vt~
-import model /home/lessa/exoHiggsEJ/HAHM_MG5model_v3/HAHM_variablesw_v\
+import model /home/lessa/higgsEJs/HAHM_MG5model_v3/HAHM_variablesw_v\
 3_UFO
 generate p p > h z / zp, z > l+ l-, h > h2 h2
-output ../../pp2ZH_v2
+output ../../pp2ZH

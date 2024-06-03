@@ -39,7 +39,7 @@ if echo "$answer" | grep -iq "^y" ;then
 	cd $homeDIR
 	cd ./MG5/bin;
 	echo "[installer] installing HepMC, LHAPDF6 and Pythia8 under MadGraph5"
-    echo "install hepmc\ninstall lhapdf6\ninstall pythia8\ninstall MadAnalysis5\nexit\n" > mad_install.txt;
+        echo "install hepmc\ninstall lhapdf6\ninstall pythia8\ninstall Delphes\nexit\n" > mad_install.txt;
 	./mg5_aMC -f mad_install.txt
 	cd $homeDIR
     rm $madgraph;
@@ -47,28 +47,8 @@ if echo "$answer" | grep -iq "^y" ;then
 	rm $madgraph;
 fi
 
-echo -n "Install Delphes (y/n)? "
-repo=https://github.com/delphes/delphes
-URL=http://cp3.irmp.ucl.ac.be/downloads/$delphes
-read answer
-if echo "$answer" | grep -iq "^y" ;then
-
-# Check if pythia8 has been installed under MadGraph5
-  pythiaDir=$homeDIR/MG5/HEPTools/pythia8 
-  if [ ! -d "$pythiaDir" ]; then
-    echo "Delphes should be installed after hepmc, lhapdf6 and pythia8 were installed in MadGraph."
-    exit
-  fi
-  echo "[installer] Installing DelphesLLP";    
-  tar -zxf DelphesLLP.tar.gz;
-  cd DelphesLLP;
-  export PYTHIA8=$pythiaDir;
-  make HAS_PYTHIA8=true;
-  rm -rf .git
-  cd $homeDIR;
-fi
 
 echo "\n[installer] For running Delphes the following env variables should be set:\n\n export LD_LIBRARY_PATH=$homeDIR/MG5/HEPTools/pythia8/lib"
-echo "\nand for reading Delphes produced ROOT files:\n\n export ROOT_INCLUDE_PATH=$homeDIR/DelphesHSCP/external\n"
+echo "\nand for reading Delphes produced ROOT files:\n\n export ROOT_INCLUDE_PATH=$homeDIR/MG5/Delphes/external\n"
 echo "\n\n or run source setenv.sh\n\n"
 cd $currentDIR
