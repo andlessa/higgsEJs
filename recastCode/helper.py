@@ -28,6 +28,9 @@ def getJetTracks(jet,allTracks):
         if track.PT < 1.0:
             continue
         # Eta and Phi at the outer edge of the tracker:
+        l = np.sqrt(track.X**2 + track.Y**2)
+        if l > 10.2*1e3:
+            continue
         eta = track.EtaOuter
         phi = track.PhiOuter        
         dR = np.sqrt((jet.Eta-eta)**2 + (jet.Phi-phi)**2)
@@ -87,35 +90,35 @@ def getSigmaPhi(track):
     
     return 15e-3 # 1e-4--1e-2 rad from 1405.6569 (Fig.14)
 
+def getD0(track,smear=True):
+
+    ## Method 1: directly smear d0 by its estimated error
+    # d0 = track.D0
+    # if smear:
+    #     d0 = np.random.normal(loc=track.D0,scale=d0Err)
+    
+    ## Method 2: smear d0 by smearing the the track vertex and phi
+    x = track.X
+    y = track.Y
+    phi = track.Phi
+    pT = track.PT
+    if smear: # PT has already been smeared
+        x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
+        y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
+        phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
+
+    vTrack = np.array([x,y])
+    pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
+    d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT        
+
+    return d0
+
 def getIP2D(tracks,smear=True):
 
     ipList = []    
     for track in tracks:
         d0Err = getSigmaD0(track)      
-
-        ## Method 1: directly smear d0 by its estimated error
-        # d0 = track.D0
-        # if smear:
-        #     d0 = np.random.normal(loc=track.D0,scale=d0Err)
-        # if d0 == 0.0: # Hack to deal with zero impact parameter
-        #     ipT = 0.0
-        # else:
-        #     ipT = np.log10(abs(d0)/d0Err)
-        # ipList.append(ipT)
-        
-        ## Method 2: smear d0 by smearing the the track vertex and phi
-        x = track.X
-        y = track.Y
-        phi = track.Phi
-        pT = track.PT
-        if smear: # PT has already been smeared
-            x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
-            y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
-            phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
-
-        vTrack = np.array([x,y])
-        pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
-        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT        
+        d0 = getD0(track,smear=smear)
         if d0 == 0.0: # Hack to deal with zero impact parameter
             ipT = 0.0
         else:
