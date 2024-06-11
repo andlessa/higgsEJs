@@ -21,15 +21,15 @@ def trackEff(track):
     return eff
 
 
-def getJetTracks(jet,allTracks):
+def getJetTracks(jet,allTracks,Rmax=None):
 
     jet_tracks = []
     for track in allTracks:
         if track.PT < 1.0:
             continue
         # Eta and Phi at the outer edge of the tracker:
-        l = np.sqrt(track.X**2 + track.Y**2)
-        if l > 10.2*1e3:
+        Lxy = np.sqrt(track.X**2 + track.Y**2)
+        if Rmax is not None and Lxy > Rmax:
             continue
         eta = track.EtaOuter
         phi = track.PhiOuter        
@@ -50,7 +50,7 @@ def getJetTracks(jet,allTracks):
 
     return jet_tracks
 
-def getSigmaD0(track,method='B'):
+def getSigmaD0(track,method):
 
     x = track.X
     y = track.Y
@@ -60,12 +60,12 @@ def getSigmaD0(track,method='B'):
     pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
 
     ## Method A: Assuming nominal values quoted in 1405.6569v2 (pg.21)
-    if method == 'A':
+    if method == 'smearD0':
         a = 30e-3
         b = 10e-3
-        d0Err = np.sqrt(a**2 + (b/track.PT)**2)
+        d0Err = np.sqrt(a**2 + (b/pT)**2)
     ##  Method B: Assuming the d0 error comes from the phi, and x,y resolutions:
-    elif method == 'B':
+    elif method == 'smearVtx':
         d0Err = np.sqrt(getSigmaXYZ(track)**2 + ((np.dot(vTrack,pTrack)/pT)**2)*getSigmaPhi(track)**2)
     return d0Err
 
@@ -90,35 +90,36 @@ def getSigmaPhi(track):
     
     return 15e-3 # 1e-4--1e-2 rad from 1405.6569 (Fig.14)
 
-def getD0(track,smear=True):
+def getD0(track,smear=True,method='smearVtx'):
 
+    if not smear:
+        d0 = abs(track.D0)
+    elif method == 'smearD0':
     ## Method 1: directly smear d0 by its estimated error
-    # d0 = track.D0
-    # if smear:
-    #     d0 = np.random.normal(loc=track.D0,scale=d0Err)
-    
+        d0 = abs(track.D0)
+        d0Err = getSigmaD0(track,method='smearD0')
+        d0 = abs(np.random.normal(loc=track.D0,scale=d0Err))
+    elif method == 'smearVtx':    
     ## Method 2: smear d0 by smearing the the track vertex and phi
-    x = track.X
-    y = track.Y
-    phi = track.Phi
-    pT = track.PT
-    if smear: # PT has already been smeared
+        x = track.X
+        y = track.Y
+        phi = track.Phi
+        pT = track.PT
         x = np.random.normal(loc=x,scale=getSigmaXYZ(track))
         y = np.random.normal(loc=y,scale=getSigmaXYZ(track))
         phi = np.random.normal(loc=phi,scale=getSigmaPhi(track))
-
-    vTrack = np.array([x,y])
-    pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
-    d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT        
+        vTrack = np.array([x,y])
+        pTrack = np.array([pT*np.cos(phi),pT*np.sin(phi)])
+        d0 = np.linalg.norm(np.cross(vTrack,pTrack))/pT        
 
     return d0
 
-def getIP2D(tracks,smear=True):
+def getIP2D(tracks,smear=True,method='smearVtx'):
 
     ipList = []    
     for track in tracks:
-        d0Err = getSigmaD0(track)      
-        d0 = getD0(track,smear=smear)
+        d0Err = getSigmaD0(track,method=method)      
+        d0 = getD0(track,smear=smear,method=method)
         if d0 == 0.0: # Hack to deal with zero impact parameter
             ipT = 0.0
         else:
@@ -199,5 +200,49 @@ def getAlpha(tracks,smear=True):
 
     return sumPV/sumAll
 
+
+def eventReader(tfileObj,nevts=-1,method='smearVtx',Rmax=None):
+    """
+    Reads a Delphes ROOT TFile object and collects the relevant distributions
+    """
+
+    tree = tfileObj.Get("Delphes")
+    if nevts < 0:
+        nevts = tree.GetEntries()
+
+    
+    vars = ['IP2D', 'theta2D', 'alpha','pT','d0','sigmaD0','weights']
+    resDict = {v : [] for v in vars}
+    resDict['method'] = method
+    resDict['Rmax'] = Rmax
+
+    for ievt in range(nevts):
+        tree.GetEntry(ievt)   
+        weightPB = tree.Event.At(0).Weight/nevts
+        jets = tree.Jet
+        tracks = tree.Track        
+
+        for j in jets:
+            if j.PT < 35.0:
+                continue
+            if abs(j.Eta) > 2.4:
+                continue
+            jet_tracks = getJetTracks(j,tracks,Rmax=Rmax)
+            if len(jet_tracks) == 0:
+                continue
+            for track in jet_tracks:
+                resDict['d0'].append(getD0(track,smear=True,method=method))
+                resDict['sigmaD0'].append(getSigmaD0(track,method=method))
+            resDict['pT'].append(j.PT)
+            resDict['alpha'].append(getAlpha(jet_tracks))
+            resDict['IP2D'].append(getIP2D(jet_tracks,smear=True,method=method))
+            resDict['theta2D'].append(getTheta2D(jet_tracks))
+            resDict['weights'].append(weightPB)
+
+    for v in vars:
+        resDict[v] = np.array(resDict[v])
+
+    return  resDict
+    
 
 
