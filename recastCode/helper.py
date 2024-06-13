@@ -39,13 +39,6 @@ def getJetTracks(jet,allTracks,Rmax=None):
         eff = trackEff(track)
         if np.random.uniform() > eff:
             continue
-        ## Remove tracks with no hits in the pixel layers:
-        # x = track.X
-        # y = track.Y
-        # vTrack = np.array([x,y])
-        # rprod = np.linalg.norm(vTrack)
-        # if rprod > 102.0:
-            # continue
         jet_tracks.append(track)
 
     return jet_tracks
