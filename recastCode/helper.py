@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import os
+np.random.seed(0)
 
 
 data_Iter5 = np.genfromtxt(os.path.join(os.path.dirname(__file__),'Iter_5.csv'),delimiter=',')
