@@ -2,6 +2,8 @@
 # Order of execution of various modules
 #######################################
 
+set RandomSeed 1
+
 set ExecutionPath {
   ParticlePropagator
 
@@ -718,7 +720,8 @@ module TreeWriter TreeWriter {
   add Branch UniqueObjectFinder/photons Photon Photon
   add Branch UniqueObjectFinder/muons Muon Muon
 
-#  add Branch FatJetFinder/jets FatJet Jet
+#  add Branch FastJetFinder/jets FastJet Jet
+#  add Branch JetEnergyScale/jets JES Jet
 
   add Branch MissingET/momentum MissingET MissingET
   add Branch ScalarHT/energy ScalarHT ScalarHT

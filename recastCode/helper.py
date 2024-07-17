@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import os
+import itertools
 np.random.seed(0)
 
 
@@ -62,7 +63,6 @@ def getSigmaD0(track,method):
     elif method == 'smearVtx':
         d0Err = np.sqrt(getSigmaXYZ(track)**2 + ((np.dot(vTrack,pTrack)/pT)**2)*getSigmaPhi(track)**2)
     return d0Err
-
 
 def getSigmaXYZ(track):
 
@@ -194,6 +194,19 @@ def getAlpha(tracks,smear=True):
 
     return sumPV/sumAll
 
+def getFourMom(pObj,mass=0.0):
+
+    if hasattr(pObj,'Px'):
+        return np.array([pObj.E,pObj.Px,pObj.Py,pObj.Pz])
+    elif hasattr(pObj,'PT'):
+        p3 = np.array([pObj.PT*np.cos(pObj.Phi),
+                       pObj.PT*np.sin(pObj.Phi),
+                       pObj.PT*np.sinh(pObj.Eta)])
+        e = np.sqrt(mass**2 + np.dot(p3,p3))
+        p4 = np.concatenate(([e],p3))
+        return p4
+    else:
+        return None
 
 def eventReader(tfileObj,nevts=-1,method='smearVtx',Rmax=None):
     """
@@ -212,9 +225,43 @@ def eventReader(tfileObj,nevts=-1,method='smearVtx',Rmax=None):
 
     for ievt in range(nevts):
         tree.GetEntry(ievt)   
-        weightPB = tree.Event.At(0).Weight/nevts
+        # weightPB = tree.Event.At(0).Weight/nevts
+        weightPB = 1.0
         jets = tree.Jet
+        # jets = tree.GenJet
         tracks = tree.Track        
+
+        #Apply lepton cut requirement:
+        electrons = tree.Electron
+        muons = tree.Muon
+        passLepton = False
+        if len(electrons) >= 2:
+            ePlus = [e for e in electrons if e.Charge > 0]
+            eMinus = [e for e in electrons if e.Charge < 0]
+            for eP,eM in itertools.product(ePlus,eMinus):
+                p1 = getFourMom(eP,mass=0.511e-3)
+                p2 = getFourMom(eM,mass=0.511e-3)
+                p12 = p1+p2       
+                mll = np.sqrt(p12[0]**2 - np.dot(p12[1:],p12[1:]))
+                pTll = np.linalg.norm(p12[1:3])
+                if pTll > 100.0 and (70.0 < mll < 110.):
+                    passLepton = True
+                    break
+        if not passLepton and len(muons) >= 2:
+            muPlus = [mu for mu in muons if mu.Charge > 0]
+            muMinus = [mu for mu in muons if mu.Charge < 0]
+            for muP,muM in itertools.product(muPlus,muMinus):
+                p1 = getFourMom(muP,mass=106e-3)
+                p2 = getFourMom(muM,mass=106e-3)
+                p12 = p1+p2       
+                mll = np.sqrt(p12[0]**2 - np.dot(p12[1:],p12[1:]))
+                pTll = np.linalg.norm(p12[1:3])
+                if pTll > 100.0 and (70.0 < mll < 110.):
+                    passLepton = True
+                    break
+        
+        if not passLepton:
+            continue
 
         for j in jets:
             if j.PT < 35.0:
